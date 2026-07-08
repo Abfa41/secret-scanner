@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
+    <title>Secret Scanner</title>
+
+    <link
+        rel="preconnect"
+        href="https://fonts.googleapis.com">
+
+    <link
+        rel="preconnect"
+        href="https://fonts.gstatic.com"
+        crossorigin>
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+    <link
+        rel="stylesheet"
+        href="style.css">
+
+</head>
+
+<body>
+
+    <!-- ========================= -->
+    <!-- Background -->
+    <!-- ========================= -->
+
+    <div class="background">
+
+        <div class="glow glow1"></div>
+
+        <div class="glow glow2"></div>
+
+    </div>
+
+    <!-- ========================= -->
+    <!-- Header -->
+    <!-- ========================= -->
+
+    <header>
+
+        <h1>
+
+            <i class="fa-solid fa-shield-halved"></i>
+
+            Secret Scanner
+
+        </h1>
+
+        <p>
+
+            Scan source code and configuration files to detect accidentally exposed secrets.
+
+        </p>
+
+    </header>
+
+    <!-- ========================= -->
+    <!-- Statistics -->
+    <!-- ========================= -->
+
+    <section class="stats">
+
+        <div class="stat-card">
+
+            <i class="fa-solid fa-file-code"></i>
+
+            <h2 id="fileName">
+
+                No File
+
+            </h2>
+
+            <p>
+
+                Current File
+
+            </p>
+
+        </div>
+
+        <div class="stat-card">
+
+            <i class="fa-solid fa-triangle-exclamation"></i>
+
+            <h2 id="secretCount">
+
+                0
+
+            </h2>
+
+            <p>
+
+                Secrets Found
+
+            </p>
+
+        </div>
+
+        <div class="stat-card">
+
+            <i class="fa-solid fa-list-check"></i>
+
+            <h2 id="scanCount">
+
+                0
+
+            </h2>
+
+            <p>
+
+                Total Scans
+
+            </p>
+
+        </div>
+
+    </section>
+
+    <!-- ========================= -->
+    <!-- Upload Card -->
+    <!-- ========================= -->
+
+    <main class="container">
+
+        <div class="upload-card">
+
+            <h2>
+
+                Upload File
+
+            </h2>
+
+            <p>
+
+                Supported text-based files such as
+                <strong>.js</strong>,
+                <strong>.ts</strong>,
+                <strong>.py</strong>,
+                <strong>.java</strong>,
+                <strong>.env</strong>,
+                <strong>.json</strong>,
+                <strong>.txt</strong>
+                and more.
+
+            </p>
+
+            <input
+                type="file"
+                id="fileInput">
+
+            <button id="scanBtn">
+
+                <i class="fa-solid fa-magnifying-glass"></i>
+
+                Scan File
+
+            </button>
+
+        </div>
+
+        <!-- Results -->
+
+        <div
+            class="results-card"
+            id="resultsCard">
+
+            <h2>
+
+                Scan Results
+
+            </h2>
+
+            <div id="results">
+
+                <div class="empty">
+
+                    <i class="fa-solid fa-shield"></i>
+
+                    <p>
+
+                        Upload a file and start scanning.
+
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+                <!-- ========================= -->
+        <!-- Scan History -->
+        <!-- ========================= -->
+
+        <div class="history-card">
+
+            <div class="history-header">
+
+                <h2>
+
+                    Recent Scans
+
+                </h2>
+
+                <button id="downloadBtn">
+
+                    <i class="fa-solid fa-download"></i>
+
+                    Download JSON Report
+
+                </button>
+
+            </div>
+
+            <div
+                id="historyList"
+                class="history-list">
+
+                <div class="empty">
+
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+
+                    <p>
+
+                        No scans have been performed yet.
+
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </main>
+
+
+
+    <!-- ========================= -->
+    <!-- Footer -->
+    <!-- ========================= -->
+
+    <footer>
+
+        Built with ❤️ using Node.js, Express & Regular Expressions
+
+    </footer>
+
+
+
+    <script src="script.js"></script>
+
+</body>
+
+</html>

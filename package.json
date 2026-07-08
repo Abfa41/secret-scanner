@@ -1,0 +1,26 @@
+{
+  "name": "secret-scanner",
+  "version": "1.0.0",
+  "description": "A security tool that scans files for exposed secrets such as API keys, passwords, tokens, and credentials.",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": [
+    "security",
+    "secret-scanner",
+    "hackweek",
+    "nodejs",
+    "express",
+    "regex",
+    "api-keys"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.21.2",
+    "multer": "^2.0.2"
+  }
+}
