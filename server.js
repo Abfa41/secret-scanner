@@ -1,89 +1,84 @@
 import express from "express";
-import multer from "multer";
 import fs from "fs";
 import path from "path";
+import os from "os";
+import crypto from "crypto";
+import simpleGit from "simple-git";
 import { fileURLToPath } from "url";
 
 const app = express();
+
 const PORT = process.env.PORT || 3000;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // ======================================
-// MULTER
+// MIDDLEWARE
 // ======================================
-
-const upload = multer({
-    dest: "scans/"
-});
-
-// ======================================
-// STATIC FILES
-// ======================================
-
-app.use(express.static(path.join(__dirname, "public")));
 
 app.use(express.json());
+
+app.use(express.static(path.join(__dirname,"public")));
 
 // ======================================
 // SECRET PATTERNS
 // ======================================
 
-const patterns = [
+const patterns=[
 
     {
-        name: "AWS Access Key",
-        severity: "High",
-        regex: /AKIA[0-9A-Z]{16}/g
+        name:"AWS Access Key",
+        severity:"High",
+        regex:/AKIA[0-9A-Z]{16}/g
     },
 
     {
-        name: "GitHub Token",
-        severity: "High",
-        regex: /ghp_[A-Za-z0-9]{36}/g
+        name:"GitHub Token",
+        severity:"High",
+        regex:/ghp_[A-Za-z0-9]{36}/g
     },
 
     {
-        name: "OpenAI API Key",
-        severity: "High",
-        regex: /sk-[A-Za-z0-9]{20,}/g
+        name:"OpenAI API Key",
+        severity:"High",
+        regex:/sk-[A-Za-z0-9]{20,}/g
     },
 
     {
-        name: "JWT Token",
-        severity: "Medium",
-        regex: /eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g
+        name:"JWT Token",
+        severity:"Medium",
+        regex:/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g
     },
 
     {
-        name: "Bearer Token",
-        severity: "Medium",
-        regex: /Bearer\s+[A-Za-z0-9\-._~+/]+=*/g
+        name:"Bearer Token",
+        severity:"Medium",
+        regex:/Bearer\s+[A-Za-z0-9\-._~+/]+=*/g
     },
 
     {
-        name: "MongoDB URI",
-        severity: "High",
-        regex: /mongodb(\+srv)?:\/\/[^\s'"]+/g
+        name:"MongoDB URI",
+        severity:"High",
+        regex:/mongodb(\+srv)?:\/\/[^\s'"]+/g
     },
 
     {
-        name: "Private Key",
-        severity: "Critical",
-        regex: /-----BEGIN[\s\S]*?PRIVATE KEY-----/g
+        name:"Private Key",
+        severity:"Critical",
+        regex:/-----BEGIN[\s\S]*?PRIVATE KEY-----/g
     },
 
     {
-        name: "Password Assignment",
-        severity: "Medium",
-        regex: /(password|passwd|pwd)\s*[:=]\s*["']?[^"'\n]+["']?/gi
+        name:"Password Assignment",
+        severity:"Medium",
+        regex:/(password|passwd|pwd)\s*[:=]\s*["']?[^"'\n]+["']?/gi
     },
 
     {
-        name: "Secret Variable",
-        severity: "Low",
-        regex: /(secret|token|apikey|api_key)\s*[:=]\s*["']?[^"'\n]+["']?/gi
+        name:"Secret Variable",
+        severity:"Low",
+        regex:/(secret|token|apikey|api_key)\s*[:=]\s*["']?[^"'\n]+["']?/gi
     }
 
 ];
@@ -92,82 +87,197 @@ const patterns = [
 // HOME
 // ======================================
 
-app.get("/", (req, res) => {
+app.get("/",(req,res)=>{
 
     res.sendFile(
-        path.join(__dirname, "public", "index.html")
+
+        path.join(
+
+            __dirname,
+
+            "public",
+
+            "index.html"
+
+        )
+
     );
 
 });
 
 // ======================================
-// SCAN FILE
+// CREATE TEMP DIRECTORY
 // ======================================
 
-app.post("/scan",(req,res)=>{
+function createTempDirectory(){
+
+    return path.join(
+
+        os.tmpdir(),
+
+        crypto.randomUUID()
+
+    );
+
+}
+
+// ======================================
+// VALIDATE GITHUB URL
+// ======================================
+
+function validateRepository(url){
 
     try{
 
-        const repo=req.body.repoPath;
+        const parsed=new URL(url);
 
-        if(!repo){
+        return parsed.hostname==="github.com";
+
+    }
+
+    catch{
+
+        return false;
+
+    }
+
+}
+
+// ======================================
+// CLONE REPOSITORY
+// ======================================
+
+async function cloneRepository(url){
+
+    let repository=url.trim();
+
+    if(!repository.endsWith(".git")){
+
+        repository+=".git";
+
+    }
+
+    const tempDirectory=
+
+        createTempDirectory();
+
+    await simpleGit().clone(
+
+        repository,
+
+        tempDirectory
+
+    );
+
+    return{
+
+        repository,
+
+        tempDirectory
+
+    };
+
+}
+
+// ======================================
+// DELETE TEMP DIRECTORY
+// ======================================
+
+function removeDirectory(directory){
+
+    if(fs.existsSync(directory)){
+
+        fs.rmSync(
+
+            directory,
+
+            {
+
+                recursive:true,
+
+                force:true
+
+            }
+
+        );
+
+    }
+
+}
+
+// ======================================
+// SCAN REPOSITORY
+// ======================================
+
+app.post("/scan", async (req, res) => {
+
+    let tempDirectory = "";
+
+    try {
+
+        const repo = req.body.repoPath;
+
+        if (!repo) {
 
             return res.status(400).json({
 
-                success:false,
-
-                message:"Repository path missing."
-
-            });
-
-        }
-
-        const findings=[];
-
-        let scannedFiles=0;
-
-        if (!fs.existsSync(repo) || !fs.statSync(repo).isDirectory()) {
-            return res.status(400).json({
                 success: false,
-                message: "Invalid repository path."
+
+                message: "GitHub repository URL is required."
+
             });
+
         }
 
-        scanFolder(repo);
+        if (!validateRepository(repo)) {
+
+            return res.status(400).json({
+
+                success: false,
+
+                message: "Please enter a valid GitHub repository URL."
+
+            });
+
+        }
+
+        const cloned = await cloneRepository(repo);
+
+        tempDirectory = cloned.tempDirectory;
+
+        const findings = [];
+
+        let scannedFiles = 0;
+
+        scanFolder(tempDirectory);
 
         res.json({
 
-            success:true,
+            success: true,
 
-            repository:repo,
+            repository: repo,
 
-            totalFiles:scannedFiles,
+            totalFiles: scannedFiles,
 
-            totalSecrets:findings.length,
+            totalSecrets: findings.length,
 
             findings
 
         });
 
-        function scanFolder(folder){
+        function scanFolder(folder) {
 
-            const files=
+            const files = fs.readdirSync(folder);
 
-            fs.readdirSync(folder);
+            for (const file of files) {
 
-            for(const file of files){
+                const fullPath = path.join(folder, file);
 
-                const full=
+                const stat = fs.statSync(fullPath);
 
-                path.join(folder,file);
+                if (stat.isDirectory()) {
 
-                const stat=
-
-                fs.statSync(full);
-
-                if(stat.isDirectory()){
-
-                    if(
+                    if (
 
                         [
 
@@ -175,33 +285,37 @@ app.post("/scan",(req,res)=>{
 
                             "node_modules",
 
+                            ".next",
+
                             "dist",
 
                             "build",
 
-                            ".next"
+                            ".cache",
+
+                            ".idea",
+
+                            ".vscode"
 
                         ].includes(file)
 
-                    ){
+                    ) {
 
                         continue;
 
                     }
 
-                    scanFolder(full);
+                    scanFolder(fullPath);
 
                 }
 
-                else{
+                else {
 
-                    if(
+                    if (
 
-                        !/\.(js|ts|jsx|tsx|java|py|cpp|c|cs|go|php|json|env|yml|yaml|txt|md)$/i
+                        !/\.(js|jsx|ts|tsx|java|py|cpp|c|cs|go|php|rb|swift|kt|json|env|yml|yaml|xml|properties|ini|txt|md)$/i.test(fullPath)
 
-                        .test(full)
-
-                    ){
+                    ) {
 
                         continue;
 
@@ -209,71 +323,71 @@ app.post("/scan",(req,res)=>{
 
                     scannedFiles++;
 
-                    const text=
+                    let text = "";
 
-                    fs.readFileSync(
+                    try {
 
-                        full,
+                        text = fs.readFileSync(
 
-                        "utf8"
+                            fullPath,
 
-                    );
+                            "utf8"
 
-                    const lines=
+                        );
 
-                    text.split("\n");
+                    }
 
-                    lines.forEach(
+                    catch {
 
-                        (line,index)=>{
+                        continue;
 
-                            patterns.forEach(
+                    }
 
-                                pattern=>{
+                    const lines = text.split("\n");
 
-                                    const matches=
+                    lines.forEach((line, index) => {
 
-                                    line.match(
+                        patterns.forEach(pattern => {
 
-                                        pattern.regex
+                            const matches = line.match(pattern.regex);
 
-                                    );
+                            if (matches) {
 
-                                    if(matches){
+                                matches.forEach(match => {
 
-                                        matches.forEach(
+                                    findings.push({
 
-                                            match=>{
+                                        file: path.relative(
 
-                                                findings.push({
+                                            tempDirectory,
 
-                                                    file:full,
+                                            fullPath
 
-                                                    line:index+1,
+                                        ),
 
-                                                    type:pattern.name,
+                                        line: index + 1,
 
-                                                    severity:pattern.severity,
+                                        type: pattern.name,
 
-                                                    value:
+                                        severity: pattern.severity,
 
-                                                    match.substring(0,10)+"********"
+                                        value:
 
-                                                });
+                                            match.length > 18
 
-                                            }
+                                                ? match.substring(0, 10) + "********"
 
-                                        );
+                                                : match
 
-                                    }
+                                    });
 
-                                }
+                                });
 
-                            );
+                            }
 
-                        }
+                        });
 
-                    );
+                    });
 
                 }
 
@@ -283,15 +397,27 @@ app.post("/scan",(req,res)=>{
 
     }
 
-    catch(err){
+    catch (err) {
+
+        console.error(err);
 
         res.status(500).json({
 
-            success:false,
+            success: false,
 
-            message:err.message
+            message: err.message
 
         });
+
+    }
+
+    finally {
+
+        if (tempDirectory) {
+
+            removeDirectory(tempDirectory);
+
+        }
 
     }
 
