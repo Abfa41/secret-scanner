@@ -104,90 +104,192 @@ app.get("/", (req, res) => {
 // SCAN FILE
 // ======================================
 
-app.post("/scan", upload.single("file"), (req, res) => {
+app.post("/scan",(req,res)=>{
 
-    try {
+    try{
 
-        if (!req.file) {
+        const repo=req.body.repoPath;
+
+        if(!repo){
 
             return res.status(400).json({
 
-                success: false,
+                success:false,
 
-                message: "No file uploaded."
+                message:"Repository path missing."
 
             });
 
         }
 
-        const fileContent = fs.readFileSync(
-            req.file.path,
-            "utf8"
-        );
+        const findings=[];
 
-        const lines = fileContent.split("\n");
+        let scannedFiles=0;
 
-        const findings = [];
-
-        lines.forEach((line, index) => {
-
-            patterns.forEach(pattern => {
-
-                const matches = line.match(pattern.regex);
-
-                if (matches) {
-
-                    matches.forEach(match => {
-
-                        findings.push({
-
-                            line: index + 1,
-
-                            type: pattern.name,
-
-                            severity: pattern.severity,
-
-                            value:
-                                match.length > 20
-                                    ? match.substring(0, 8) +
-                                      "********"
-                                    : match
-
-                        });
-
-                    });
-
-                }
-
+        if (!fs.existsSync(repo) || !fs.statSync(repo).isDirectory()) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid repository path."
             });
+        }
 
-        });
-
-        fs.unlinkSync(req.file.path);
+        scanFolder(repo);
 
         res.json({
 
-            success: true,
+            success:true,
 
-            file: req.file.originalname,
+            repository:repo,
 
-            totalSecrets: findings.length,
+            totalFiles:scannedFiles,
+
+            totalSecrets:findings.length,
 
             findings
 
         });
 
+        function scanFolder(folder){
+
+            const files=
+
+            fs.readdirSync(folder);
+
+            for(const file of files){
+
+                const full=
+
+                path.join(folder,file);
+
+                const stat=
+
+                fs.statSync(full);
+
+                if(stat.isDirectory()){
+
+                    if(
+
+                        [
+
+                            ".git",
+
+                            "node_modules",
+
+                            "dist",
+
+                            "build",
+
+                            ".next"
+
+                        ].includes(file)
+
+                    ){
+
+                        continue;
+
+                    }
+
+                    scanFolder(full);
+
+                }
+
+                else{
+
+                    if(
+
+                        !/\.(js|ts|jsx|tsx|java|py|cpp|c|cs|go|php|json|env|yml|yaml|txt|md)$/i
+
+                        .test(full)
+
+                    ){
+
+                        continue;
+
+                    }
+
+                    scannedFiles++;
+
+                    const text=
+
+                    fs.readFileSync(
+
+                        full,
+
+                        "utf8"
+
+                    );
+
+                    const lines=
+
+                    text.split("\n");
+
+                    lines.forEach(
+
+                        (line,index)=>{
+
+                            patterns.forEach(
+
+                                pattern=>{
+
+                                    const matches=
+
+                                    line.match(
+
+                                        pattern.regex
+
+                                    );
+
+                                    if(matches){
+
+                                        matches.forEach(
+
+                                            match=>{
+
+                                                findings.push({
+
+                                                    file:full,
+
+                                                    line:index+1,
+
+                                                    type:pattern.name,
+
+                                                    severity:pattern.severity,
+
+                                                    value:
+
+                                                    match.substring(0,10)+"********"
+
+                                                });
+
+                                            }
+
+                                        );
+
+                                    }
+
+                                }
+
+                            );
+
+                        }
+
+                    );
+
+                }
+
+            }
+
+        }
+
     }
 
-    catch (err) {
-
-        console.error(err);
+    catch(err){
 
         res.status(500).json({
 
-            success: false,
+            success:false,
 
-            message: "Scanning failed."
+            message:err.message
 
         });
 

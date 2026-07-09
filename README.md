@@ -6,7 +6,7 @@ A security-focused web application developed for the **HackWeek Challenge 2026**
 
 ## ✨ Features
 
-- 🔍 Scan uploaded source code files
+- 🔍 Scan Git repositories recursively.
 - 🔐 Detect exposed API Keys
 - 🔑 Detect Passwords
 - 🪙 Detect Authentication Tokens

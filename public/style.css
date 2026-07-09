@@ -647,3 +647,43 @@ footer{
     }
 
 }
+
+#repoPath{
+
+    width:100%;
+
+    padding:16px 18px;
+
+    margin-bottom:20px;
+
+    border-radius:14px;
+
+    border:1px solid rgba(255,255,255,.12);
+
+    outline:none;
+
+    background:#111827;
+
+    color:white;
+
+    font-size:16px;
+
+    transition:.3s;
+
+}
+
+#repoPath::placeholder{
+
+    color:#94a3b8;
+
+}
+
+#repoPath:focus{
+
+    border-color:#38bdf8;
+
+    box-shadow:
+
+        0 0 0 3px rgba(56,189,248,.18);
+
+}

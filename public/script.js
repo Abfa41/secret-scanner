@@ -2,8 +2,8 @@
 // DOM ELEMENTS
 // =====================================
 
-const fileInput =
-document.getElementById("fileInput");
+const repoPath =
+document.getElementById("repoPath");
 
 const scanBtn =
 document.getElementById("scanBtn");
@@ -206,109 +206,61 @@ function displayResults(report){
 
 }
 
-// =====================================
-// SCAN FILE
-// =====================================
+async function scanRepository(){
 
-async function scanFile(){
+    const path = repoPath.value.trim();
 
-    const file =
+    if(path===""){
 
-        fileInput.files[0];
-
-
-
-    if(!file){
-
-        alert(
-
-            "Please select a file first."
-
-        );
+        alert("Enter repository path.");
 
         return;
 
     }
 
+    scanBtn.disabled=true;
 
+    scanBtn.innerHTML=
 
-    scanBtn.disabled = true;
-
-    scanBtn.innerHTML =
-
-        '<i class="fa-solid fa-spinner fa-spin"></i> Scanning...';
-
-
-
-    const formData =
-
-        new FormData();
-
-    formData.append(
-
-        "file",
-
-        file
-
-    );
-
-
+    '<i class="fa-solid fa-spinner fa-spin"></i> Scanning...';
 
     try{
 
-        const response =
+        const response=
 
-            await fetch(
+        await fetch("/scan",{
 
-                "/scan",
+            method:"POST",
 
-                {
+            headers:{
 
-                    method:"POST",
+                "Content-Type":"application/json"
 
-                    body:formData
+            },
 
-                }
+            body:JSON.stringify({
 
-            );
+                repoPath:path
 
+            })
 
+        });
 
-        const report =
+        const report=
 
-            await response.json();
-
-
-
-        if(!report.success){
-
-            throw new Error(
-
-                report.message ||
-
-                "Scanning failed."
-
-            );
-
-        }
-
-
+        await response.json();
 
         displayResults(report);
 
-
-
         history.push({
 
-            file:report.file,
+            file:report.repository,
 
             totalSecrets:report.totalSecrets,
 
             date:new Date().toLocaleString()
 
         });
-
-
 
         localStorage.setItem(
 
@@ -318,35 +270,23 @@ async function scanFile(){
 
         );
 
-
-
         loadHistory();
 
     }
 
     catch(err){
 
-        console.error(err);
-
-
-
-        alert(
-
-            err.message ||
-
-            "Something went wrong while scanning."
-
-        );
+        alert(err.message);
 
     }
 
     finally{
 
-        scanBtn.disabled = false;
+        scanBtn.disabled=false;
 
-        scanBtn.innerHTML =
+        scanBtn.innerHTML=
 
-            '<i class="fa-solid fa-magnifying-glass"></i> Scan File';
+        '<i class="fa-solid fa-folder-tree"></i> Scan Repository';
 
     }
 
@@ -444,7 +384,7 @@ scanBtn.addEventListener(
 
     "click",
 
-    scanFile
+    scanRepository
 
 );
 
